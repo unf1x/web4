@@ -222,11 +222,61 @@ body{
 
 .panel__body{ padding: 16px; }
 
+.grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card{
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12));
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 22px rgba(0,0,0,.25);
+  position: relative;
+  overflow:hidden;
+}
+.card::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  background: radial-gradient(600px 200px at 30% 0%, rgba(23,214,255,.10), transparent 55%);
+  pointer-events:none;
+}
+
+.card__date{
+  font-weight: 800;
+  position: relative;
+}
+.card__row{
+  display:flex;
+  justify-content:space-between;
+  margin-top: 10px;
+  position: relative;
+}
+
+.badge{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.14);
+  position: relative;
+}
+
 .state{
   border: 1px dashed var(--line);
   background: rgba(0,0,0,.12);
   padding: 14px;
   border-radius: 18px;
+}
+.state--error{
+  border-color: rgba(255,92,92,.55);
 }
 
 .modal__overlay{
