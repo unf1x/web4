@@ -19,9 +19,25 @@
                 <p class="brand__subtitle">Сегодня + 2 дня • несколько городов • сохранение</p>
             </div>
         </div>
+
+        <div class="topbar__actions">
+            <button id="refreshBtn" class="btn btn--accent" type="button">Обновить</button>
+            <button id="addCityBtn" class="btn btn--ghost" type="button">Добавить город</button>
+        </div>
     </header>
 
     <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar__head">
+                <div class="sidebar__title">Локации</div>
+                <div class="sidebar__hint">Нажми, чтобы переключиться</div>
+            </div>
+
+            <nav class="locations" aria-label="Локации">
+                <ul id="locationsList" class="locations__list"></ul>
+            </nav>
+        </aside>
+
         <main class="content">
             <section id="statusBar" class="statusbar" hidden></section>
 
