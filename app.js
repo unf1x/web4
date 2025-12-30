@@ -39,6 +39,20 @@
     localStorage.setItem(STORAGE_LOCATIONS, JSON.stringify(state.locations));
     localStorage.setItem(STORAGE_SELECTED, state.selectedId || "");
   }
+  function setStatus(message, kind = "info") {
+    if (!message) {
+      els.statusBar.hidden = true;
+      els.statusBar.textContent = "";
+      return;
+    }
+    els.statusBar.hidden = false;
+    els.statusBar.textContent = message;
+
+    els.statusBar.style.borderColor =
+      kind === "error" ? "rgba(255,107,107,.6)" :
+      kind === "ok" ? "rgba(55,214,122,.6)" :
+      "rgba(255,255,255,.10)";
+  }
 
   function fmtDate(iso) {
     const [y, m, d] = iso.split("-").map(Number);
@@ -269,6 +283,47 @@ function closeModal() {
   selectedSuggestion = null;
 }
 
+  function requestGeolocationOnce() {
+    if (!navigator.geolocation) {
+      setStatus("Геолокация не поддерживается браузером. Добавьте город вручную.", "error");
+      openModal(true);
+      return;
+    }
+
+    if (geoRequestedOnce) return;
+    geoRequestedOnce = true;
+
+    setStatus("Запрашиваем геопозицию…");
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setStatus("");
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const geoLoc = {
+          id: uid(),
+          kind: "geo",
+          label: "Текущее местоположение",
+          latitude: lat,
+          longitude: lon,
+        };
+
+        state.locations = [geoLoc];
+        state.selectedId = geoLoc.id;
+        saveState();
+        renderTabs();
+        renderPanel();
+        refreshAllWeather();
+      },
+      err => {
+        setStatus("Геолокация недоступна. Добавьте город вручную.", "error");
+        openModal(true);
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+    );
+  }
+
   els.refreshBtn.addEventListener("click", () => {
     refreshAllWeather();
   });
@@ -286,6 +341,18 @@ function closeModal() {
   function init() {
     renderTabs();
     renderPanel();
+
+    if (!state.locations.length) {
+      requestGeolocationOnce();
+      return;
+    }
+
+    if (!state.selectedId) state.selectedId = state.locations[0].id;
+    saveState();
+    renderTabs();
+    renderPanel();
+
+    refreshAllWeather();
   }
 
   init();
