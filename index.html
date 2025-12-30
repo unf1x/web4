@@ -56,6 +56,34 @@
 
 </div>
 
+<div id="modalOverlay" class="modal__overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal__head">
+            <h3 id="modalTitle">Добавить город</h3>
+            <button id="closeModalBtn" class="iconbtn" type="button" aria-label="Закрыть">✕</button>
+        </div>
+
+        <form id="cityForm" class="modal__body" autocomplete="off">
+            <label class="field">
+                <span class="field__label">Город</span>
+                <input id="cityInput" class="input" type="text" placeholder="Начните вводить (например, Москва)" />
+                <div id="cityError" class="field__error" aria-live="polite"></div>
+            </label>
+
+            <div id="suggestBox" class="suggest" hidden></div>
+
+            <div class="modal__actions">
+                <button class="btn btn--primary" type="submit">Добавить</button>
+                <button id="cancelBtn" class="btn" type="button">Отмена</button>
+            </div>
+
+            <p class="muted small">
+                Выберите город из списка подсказок.
+            </p>
+        </form>
+    </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
