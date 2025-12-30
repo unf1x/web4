@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Прогноз погоды</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="assets/logo_weather.png" />
+</head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand__logo">
+                <img class="brand__logoImg" src="assets/logo_weather.png" alt="Логотип приложения">
+            </div>
+            <div class="brand__text">
+                <h1 class="brand__title">Прогноз погоды</h1>
+                <p class="brand__subtitle">Сегодня + 2 дня • несколько городов • сохранение</p>
+            </div>
+        </div>
+
+        <div class="topbar__actions">
+            <button id="refreshBtn" class="btn btn--accent" type="button">Обновить</button>
+            <button id="addCityBtn" class="btn btn--ghost" type="button">Добавить город</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar__head">
+                <div class="sidebar__title">Локации</div>
+                <div class="sidebar__hint">Нажми, чтобы переключиться</div>
+            </div>
+
+            <nav class="locations" aria-label="Локации">
+                <ul id="locationsList" class="locations__list"></ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <section id="statusBar" class="statusbar" hidden></section>
+
+            <section id="weatherPanel" class="panel">
+                <div class="panel__head">
+                    <div class="panel__titles">
+                        <h2 id="panelTitle" class="panel__title">—</h2>
+                        <div id="updatedAt" class="panel__meta"></div>
+                    </div>
+                </div>
+
+                <div id="panelBody" class="panel__body"></div>
+            </section>
+        </main>
+    </div>
+
+</div>
+
+<div id="modalOverlay" class="modal__overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal__head">
+            <h3 id="modalTitle">Добавить город</h3>
+            <button id="closeModalBtn" class="iconbtn" type="button" aria-label="Закрыть">✕</button>
+        </div>
+
+        <form id="cityForm" class="modal__body" autocomplete="off">
+            <label class="field">
+                <span class="field__label">Город</span>
+                <input id="cityInput" class="input" type="text" placeholder="Начните вводить (например, Москва)" />
+                <div id="cityError" class="field__error" aria-live="polite"></div>
+            </label>
+
+            <div id="suggestBox" class="suggest" hidden></div>
+
+            <div class="modal__actions">
+                <button class="btn btn--primary" type="submit">Добавить</button>
+                <button id="cancelBtn" class="btn" type="button">Отмена</button>
+            </div>
+
+            <p class="muted small">
+                Выберите город из списка подсказок.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
