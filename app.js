@@ -39,6 +39,22 @@
     localStorage.setItem(STORAGE_LOCATIONS, JSON.stringify(state.locations));
     localStorage.setItem(STORAGE_SELECTED, state.selectedId || "");
   }
+
+  function loadState() {
+    try {
+      const locRaw = localStorage.getItem(STORAGE_LOCATIONS);
+      state.locations = locRaw ? JSON.parse(locRaw) : [];
+    } catch {
+      state.locations = [];
+    }
+    const sel = localStorage.getItem(STORAGE_SELECTED);
+    state.selectedId = sel ? sel : null;
+
+    if (state.selectedId && !state.locations.some(l => l.id === state.selectedId)) {
+      state.selectedId = state.locations[0]?.id ?? null;
+    }
+  }
+
   function setStatus(message, kind = "info") {
     if (!message) {
       els.statusBar.hidden = true;
@@ -475,6 +491,7 @@ function closeModal() {
   });
 
   function init() {
+    loadState();
     renderTabs();
     renderPanel();
 
