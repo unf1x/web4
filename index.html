@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Прогноз погоды</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="assets/logo_weather.png" />
+</head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand__logo">
+                <img class="brand__logoImg" src="assets/logo_weather.png" alt="Логотип приложения">
+            </div>
+            <div class="brand__text">
+                <h1 class="brand__title">Прогноз погоды</h1>
+                <p class="brand__subtitle">Сегодня + 2 дня • несколько городов • сохранение</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="layout">
+        <main class="content">
+            <section id="statusBar" class="statusbar" hidden></section>
+
+            <section id="weatherPanel" class="panel">
+                <div class="panel__head">
+                    <div class="panel__titles">
+                        <h2 id="panelTitle" class="panel__title">—</h2>
+                        <div id="updatedAt" class="panel__meta"></div>
+                    </div>
+                </div>
+
+                <div id="panelBody" class="panel__body"></div>
+            </section>
+        </main>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
