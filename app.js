@@ -235,6 +235,31 @@
     return { days, currentTemp };
   }
 
+  async function fetchCitySuggestions(query) {
+    const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+    url.searchParams.set("name", query);
+    url.searchParams.set("count", "7");
+    url.searchParams.set("language", "ru");
+    url.searchParams.set("format", "json");
+
+    if (suggestAbort) suggestAbort.abort();
+    suggestAbort = new AbortController();
+
+    const res = await fetch(url.toString(), { signal: suggestAbort.signal });
+    if (!res.ok) throw new Error(`Geocoding HTTP ${res.status}`);
+    const json = await res.json();
+
+    const results = Array.isArray(json?.results) ? json.results : [];
+    return results.map(r => ({
+      name: r.name,
+      admin1: r.admin1,
+      country: r.country,
+      latitude: r.latitude,
+      longitude: r.longitude,
+    }));
+  }
+
+
   async function refreshWeatherForLocation(loc) {
     state.weatherById.set(loc.id, { status: "loading" });
     if (loc.id === state.selectedId) renderPanel();
@@ -282,6 +307,63 @@ function closeModal() {
   els.suggestBox.innerHTML = "";
   selectedSuggestion = null;
 }
+
+  function renderSuggestions(list) {
+    if (!list.length) {
+      els.suggestBox.hidden = true;
+      els.suggestBox.innerHTML = "";
+      return;
+    }
+    els.suggestBox.hidden = false;
+    els.suggestBox.innerHTML = list.map((s, idx) => {
+      const meta = [s.admin1, s.country].filter(Boolean).join(", ");
+      const label = meta ? `${s.name} — ${meta}` : s.name;
+      return `<div class="suggest__item" data-idx="${idx}">${escapeHtml(label)}</div>`;
+    }).join("");
+
+    els.suggestBox.querySelectorAll(".suggest__item").forEach(item => {
+      item.addEventListener("click", () => {
+        const idx = Number(item.getAttribute("data-idx"));
+        selectedSuggestion = list[idx];
+        els.cityInput.value = selectedSuggestion.name;
+        els.cityError.textContent = "";
+        els.suggestBox.hidden = true;
+      });
+    });
+  }
+  function normalizeCityLabel(s) {
+    const meta = [s.admin1, s.country].filter(Boolean).join(", ");
+    return meta ? `${s.name}, ${meta}` : s.name;
+  }
+
+  function addCityLocationFromSuggestion(s) {
+    const newLoc = {
+      id: uid(),
+      kind: "city",
+      label: normalizeCityLabel(s),
+      latitude: s.latitude,
+      longitude: s.longitude,
+    };
+
+    const dup = state.locations.some(l =>
+      Math.abs(l.latitude - newLoc.latitude) < 1e-6 &&
+      Math.abs(l.longitude - newLoc.longitude) < 1e-6
+    );
+    if (dup) {
+      els.cityError.textContent = "Этот город уже добавлен.";
+      return false;
+    }
+
+    state.locations.push(newLoc);
+    if (!state.selectedId) state.selectedId = newLoc.id;
+
+    saveState();
+    renderTabs();
+    renderPanel();
+    refreshWeatherForLocation(newLoc);
+
+    return true;
+  }
 
   function requestGeolocationOnce() {
     if (!navigator.geolocation) {
@@ -336,6 +418,60 @@ function closeModal() {
   els.cancelBtn.addEventListener("click", () => closeModal());
   els.modalOverlay.addEventListener("click", (e) => {
     if (e.target === els.modalOverlay && els.cancelBtn.style.display !== "none") closeModal();
+  });
+
+    let suggestTimer = null;
+    els.cityInput.addEventListener("input", () => {
+      els.cityError.textContent = "";
+      selectedSuggestion = null;
+
+      const q = els.cityInput.value.trim();
+      if (q.length < 2) {
+        els.suggestBox.hidden = true;
+        els.suggestBox.innerHTML = "";
+        return;
+      }
+
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(async () => {
+          try {
+            els.suggestBox.hidden = false;
+            els.suggestBox.innerHTML = `<div class="suggest__item suggest__item--disabled">Загрузка…</div>`;
+
+            const list = await fetchCitySuggestions(q);
+
+            if (!list.length) {
+              els.suggestBox.hidden = false;
+              els.suggestBox.innerHTML = `<div class="suggest__item suggest__item--disabled">Ничего не найдено</div>`;
+              selectedSuggestion = null;
+              return;
+            }
+
+            renderSuggestions(list);
+          } catch (e) {
+            els.suggestBox.hidden = true;
+            els.suggestBox.innerHTML = "";
+            selectedSuggestion = null;
+            els.cityError.textContent = "Не удалось получить список городов. Попробуйте ещё раз.";
+          }
+      }, 300);
+    });
+
+  els.cityForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    els.cityError.textContent = "";
+
+    if (!selectedSuggestion) {
+      els.cityError.textContent = "Выберите город из выпадающего списка.";
+      return;
+    }
+
+    const ok = addCityLocationFromSuggestion(selectedSuggestion);
+    if (ok) closeModal();
+
+    if (state.locations.length === 1) {
+      setStatus("", "ok");
+    }
   });
 
   function init() {
