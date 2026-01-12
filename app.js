@@ -112,7 +112,7 @@
   }
 
   function renderTabs() {
-    els.locationsList.innerHTML = "";
+    clearElement(els.locationsList);
 
     state.locations.forEach(loc => {
       const li = document.createElement("li");
@@ -133,93 +133,186 @@
 
   }
 
+
+  function clearElement(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function createStateBlock(title, msg, isError = false) {
+    const box = document.createElement("div");
+    box.className = "state" + (isError ? " state--error" : "");
+
+    const pTitle = document.createElement("p");
+    pTitle.className = "state__title";
+    pTitle.textContent = title;
+
+    const pMsg = document.createElement("p");
+    pMsg.className = "state__msg";
+    pMsg.textContent = msg;
+
+    box.append(pTitle, pMsg);
+    return box;
+  }
+
+  function createBadge(label, value) {
+    const badge = document.createElement("div");
+    badge.className = "badge";
+
+    const spanLabel = document.createElement("span");
+    spanLabel.textContent = label;
+
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+
+    badge.append(spanLabel, strong);
+    return badge;
+  }
+
+  function createDayCard(day, idx) {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const dateDiv = document.createElement("div");
+    dateDiv.className = "card__date";
+    const title =
+      idx === 0 ? `Сегодня • ${fmtDate(day.date)}` : fmtDate(day.date);
+    dateDiv.textContent = title;
+
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.style.marginTop = "10px";
+
+    const iconSpan = document.createElement("span");
+    iconSpan.style.fontSize = "20px";
+    iconSpan.textContent = weatherCodeToIcon(day.code);
+
+    const textSpan = document.createElement("span");
+    textSpan.textContent = weatherCodeToText(day.code);
+
+    badge.append(iconSpan, textSpan);
+
+    const rowMin = document.createElement("div");
+    rowMin.className = "card__row";
+    const minLabel = document.createElement("span");
+    minLabel.className = "muted";
+    minLabel.textContent = "Мин";
+    const minVal = document.createElement("strong");
+    minVal.textContent = `${Math.round(day.tmin)}°C`;
+    rowMin.append(minLabel, minVal);
+
+    const rowMax = document.createElement("div");
+    rowMax.className = "card__row";
+    const maxLabel = document.createElement("span");
+    maxLabel.className = "muted";
+    maxLabel.textContent = "Макс";
+    const maxVal = document.createElement("strong");
+    maxVal.textContent = `${Math.round(day.tmax)}°C`;
+    rowMax.append(maxLabel, maxVal);
+
+    card.append(dateDiv, badge, rowMin, rowMax);
+    return card;
+  }
+
+
   function renderPanel() {
     const loc = state.locations.find(l => l.id === state.selectedId) || null;
     els.panelTitle.textContent = loc ? loc.label : "—";
     els.updatedAt.textContent = "";
 
+    clearElement(els.panelBody);
+
     if (!loc) {
-      els.panelBody.innerHTML = `
-        <div class="state">
-          <p class="state__title">Нет выбранной локации</p>
-          <p class="state__msg">Разрешите геолокацию или добавьте город.</p>
-        </div>
-      `;
+      const emptyState = createStateBlock(
+        "Нет выбранной локации",
+        "Разрешите геолокацию или добавьте город."
+      );
+      els.panelBody.appendChild(emptyState);
       return;
     }
 
     const entry = state.weatherById.get(loc.id);
 
     if (!entry || entry.status === "loading") {
-      els.panelBody.innerHTML = `
-        <div class="state">
-          <p class="state__title">Загрузка прогноза…</p>
-          <p class="state__msg">Отправляем HTTP-запрос к погодному API.</p>
-        </div>
-      `;
+      const loadingState = createStateBlock(
+        "Загрузка прогноза…",
+        "Отправляем HTTP-запрос к погодному API."
+      );
+      els.panelBody.appendChild(loadingState);
       return;
     }
 
     if (entry.status === "error") {
-      els.panelBody.innerHTML = `
-        <div class="state state--error">
-          <p class="state__title">Ошибка загрузки</p>
-          <p class="state__msg">${escapeHtml(entry.message || "Не удалось получить данные.")}</p>
-          <div style="margin-top:12px;">
-            <button class="btn btn--primary" type="button" id="retryBtn">Повторить</button>
-          </div>
-        </div>
-      `;
-      const retryBtn = document.getElementById("retryBtn");
-      retryBtn?.addEventListener("click", () => refreshWeatherForLocation(loc));
+      const errorState = createStateBlock(
+        "Ошибка загрузки",
+        entry.message || "Не удалось получить данные.",
+        true
+      );
+
+      const actions = document.createElement("div");
+      actions.style.marginTop = "12px";
+
+      const retryBtn = document.createElement("button");
+      retryBtn.type = "button";
+      retryBtn.className = "btn btn--primary";
+      retryBtn.textContent = "Повторить";
+      retryBtn.addEventListener("click", () => refreshWeatherForLocation(loc));
+
+      actions.appendChild(retryBtn);
+      errorState.appendChild(actions);
+
+      els.panelBody.appendChild(errorState);
       return;
     }
 
     const w = entry.data;
-    els.updatedAt.textContent = `Обновлено: ${new Date(entry.updatedAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
+    els.updatedAt.textContent =
+      "Обновлено: " +
+      new Date(entry.updatedAt).toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 
-    const current = typeof w.currentTemp === "number"
-      ? `<div class="badge"><span>Сейчас</span><strong>${Math.round(w.currentTemp)}°C</strong></div>`
-      : "";
+    const badgesWrapper = document.createElement("div");
+    badgesWrapper.style.display = "flex";
+    badgesWrapper.style.gap = "10px";
+    badgesWrapper.style.flexWrap = "wrap";
+    badgesWrapper.style.marginBottom = "12px";
 
-    const cards = w.days.map((d, idx) => {
-      const title = idx === 0 ? `Сегодня • ${fmtDate(d.date)}` : fmtDate(d.date);
-      const icon = weatherCodeToIcon(d.code);
-      const text = weatherCodeToText(d.code);
-      return `
-        <div class="card">
-          <div class="card__date">${escapeHtml(title)}</div>
-          <div style="margin-top:10px;" class="badge">
-            <span style="font-size:20px">${icon}</span>
-            <span>${escapeHtml(text)}</span>
-          </div>
-          <div class="card__row">
-            <span class="muted">Мин</span><strong>${Math.round(d.tmin)}°C</strong>
-          </div>
-          <div class="card__row">
-            <span class="muted">Макс</span><strong>${Math.round(d.tmax)}°C</strong>
-          </div>
-        </div>
-      `;
-    }).join("");
+    if (typeof w.currentTemp === "number") {
+      const currentBadge = createBadge(
+        "Сейчас",
+        `${Math.round(w.currentTemp)}°C`
+      );
+      badgesWrapper.appendChild(currentBadge);
+    }
 
-    els.panelBody.innerHTML = `
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-        ${current}
-        <div class="badge"><span>Дней</span><strong>${w.days.length}</strong></div>
-      </div>
-      <div class="grid">${cards}</div>
-    `;
+    const daysBadge = createBadge("Дней", String(w.days.length));
+    badgesWrapper.appendChild(daysBadge);
+
+    els.panelBody.appendChild(badgesWrapper);
+
+    const grid = document.createElement("div");
+    grid.className = "grid";
+
+    w.days.forEach((d, idx) => {
+      const card = createDayCard(d, idx);
+      grid.appendChild(card);
+    });
+
+    els.panelBody.appendChild(grid);
   }
+function setSuggestBoxMessage(text) {
+  clearElement(els.suggestBox);
+  els.suggestBox.hidden = false;
 
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+  const item = document.createElement("div");
+  item.className = "suggest__item suggest__item--disabled";
+  item.textContent = text;
+
+  els.suggestBox.appendChild(item);
+}
+
+
 
   async function fetchWeather(latitude, longitude) {
     const url = new URL("https://api.open-meteo.com/v1/forecast");
@@ -305,7 +398,7 @@ function openModal(force = false) {
   els.cityError.textContent = "";
   els.cityInput.value = "";
   els.suggestBox.hidden = true;
-  els.suggestBox.innerHTML = "";
+  clearElement(els.suggestBox);
   selectedSuggestion = null;
 
   els.cancelBtn.style.display = force ? "none" : "inline-flex";
@@ -320,33 +413,41 @@ function closeModal() {
 
   els.cityError.textContent = "";
   els.suggestBox.hidden = true;
-  els.suggestBox.innerHTML = "";
+  clearElement(els.suggestBox);
   selectedSuggestion = null;
 }
 
-  function renderSuggestions(list) {
-    if (!list.length) {
-      els.suggestBox.hidden = true;
-      els.suggestBox.innerHTML = "";
-      return;
-    }
-    els.suggestBox.hidden = false;
-    els.suggestBox.innerHTML = list.map((s, idx) => {
-      const meta = [s.admin1, s.country].filter(Boolean).join(", ");
-      const label = meta ? `${s.name} — ${meta}` : s.name;
-      return `<div class="suggest__item" data-idx="${idx}">${escapeHtml(label)}</div>`;
-    }).join("");
 
-    els.suggestBox.querySelectorAll(".suggest__item").forEach(item => {
-      item.addEventListener("click", () => {
-        const idx = Number(item.getAttribute("data-idx"));
-        selectedSuggestion = list[idx];
-        els.cityInput.value = selectedSuggestion.name;
-        els.cityError.textContent = "";
+    function renderSuggestions(list) {
+      clearElement(els.suggestBox);
+
+      if (!list.length) {
         els.suggestBox.hidden = true;
+        return;
+      }
+
+      els.suggestBox.hidden = false;
+
+      list.forEach((s, idx) => {
+        const meta = [s.admin1, s.country].filter(Boolean).join(", ");
+        const label = meta ? `${s.name} — ${meta}` : s.name;
+
+        const item = document.createElement("div");
+        item.className = "suggest__item";
+        item.textContent = label;
+
+        item.addEventListener("click", () => {
+          selectedSuggestion = s;
+          els.cityInput.value = selectedSuggestion.name;
+          els.cityError.textContent = "";
+          els.suggestBox.hidden = true;
+        });
+
+        els.suggestBox.appendChild(item);
       });
-    });
-  }
+    }
+
+
   function normalizeCityLabel(s) {
     const meta = [s.admin1, s.country].filter(Boolean).join(", ");
     return meta ? `${s.name}, ${meta}` : s.name;
@@ -444,21 +545,19 @@ function closeModal() {
       const q = els.cityInput.value.trim();
       if (q.length < 2) {
         els.suggestBox.hidden = true;
-        els.suggestBox.innerHTML = "";
+        clearElement(els.suggestBox);
         return;
       }
 
       clearTimeout(suggestTimer);
       suggestTimer = setTimeout(async () => {
           try {
-            els.suggestBox.hidden = false;
-            els.suggestBox.innerHTML = `<div class="suggest__item suggest__item--disabled">Загрузка…</div>`;
+            setSuggestBoxMessage("Загрузка…");
 
             const list = await fetchCitySuggestions(q);
 
             if (!list.length) {
-              els.suggestBox.hidden = false;
-              els.suggestBox.innerHTML = `<div class="suggest__item suggest__item--disabled">Ничего не найдено</div>`;
+              setSuggestBoxMessage("Ничего не найдено");
               selectedSuggestion = null;
               return;
             }
@@ -466,7 +565,7 @@ function closeModal() {
             renderSuggestions(list);
           } catch (e) {
             els.suggestBox.hidden = true;
-            els.suggestBox.innerHTML = "";
+            clearElement(els.suggestBox);
             selectedSuggestion = null;
             els.cityError.textContent = "Не удалось получить список городов. Попробуйте ещё раз.";
           }
